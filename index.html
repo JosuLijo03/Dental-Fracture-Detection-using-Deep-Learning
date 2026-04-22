@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DentalScan AI — Fracture Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04070d;
+  --card:#080e1a;
+  --card2:#0c1422;
+  --border:rgba(255,255,255,0.06);
+  --cyan:#00f5d4;--cyan2:#00c9ad;--cyan-glow:rgba(0,245,212,0.15);
+  --pink:#ff3d6b;--pink2:#cc1f4a;--pink-glow:rgba(255,61,107,0.15);
+  --gold:#ffd166;--purple:#9b5de5;
+  --text:#dde4f0;--dim:#556070;--faint:#2a3340;
+  --mono:'Space Mono',monospace;--head:'Bebas Neue',sans-serif;--body:'DM Sans',sans-serif;
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* animated bg grid */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,245,212,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,245,212,0.04) 1px,transparent 1px);
+  background-size:60px 60px;
+  animation:gridMove 20s linear infinite;
+  pointer-events:none;z-index:0
+}
+@keyframes gridMove{from{background-position:0 0}to{background-position:60px 60px}}
+
+/* radial glow blobs */
+.blob{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;z-index:0;animation:blobFloat 8s ease-in-out infinite}
+.blob1{width:500px;height:500px;background:rgba(0,245,212,0.06);top:-100px;left:-100px;animation-delay:0s}
+.blob2{width:400px;height:400px;background:rgba(255,61,107,0.06);bottom:-100px;right:-100px;animation-delay:3s}
+.blob3{width:300px;height:300px;background:rgba(155,93,229,0.05);top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:6s}
+@keyframes blobFloat{0%,100%{transform:scale(1) translate(0,0)}50%{transform:scale(1.1) translate(20px,-20px)}}
+
+/* header */
+header{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 48px;
+  border-bottom:1px solid var(--border);
+  background:rgba(4,7,13,0.85);
+  backdrop-filter:blur(20px);
+}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-icon{
+  width:44px;height:44px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 20px rgba(0,245,212,0.3);
+}
+.logo-text{font-family:var(--head);font-size:28px;letter-spacing:0.08em;color:#fff}
+.logo-text span{color:var(--cyan)}
+.header-pills{display:flex;gap:10px;align-items:center}
+.pill{
+  font-family:var(--mono);font-size:10px;
+  padding:5px 12px;border-radius:20px;
+  border:1px solid var(--border);
+  color:var(--dim);background:var(--card);
+}
+.pill.live{border-color:rgba(0,245,212,0.3);color:var(--cyan);display:flex;align-items:center;gap:6px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,245,212,0.4)}50%{opacity:0.6;box-shadow:0 0 0 6px rgba(0,245,212,0)}}
+
+/* hero */
+.hero{
+  position:relative;z-index:2;
+  text-align:center;
+  padding:80px 40px 60px;
+  overflow:hidden;
+}
+.hero-tag{
+  display:inline-block;
+  font-family:var(--mono);font-size:11px;letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--cyan);
+  border:1px solid rgba(0,245,212,0.25);
+  padding:6px 18px;border-radius:20px;
+  background:rgba(0,245,212,0.06);
+  margin-bottom:28px;
+  animation:fadeUp 0.6s ease both;
+}
+.hero h1{
+  font-family:var(--head);
+  font-size:clamp(56px,9vw,110px);
+  letter-spacing:0.04em;
+  line-height:0.9;
+  color:#fff;
+  margin-bottom:24px;
+  animation:fadeUp 0.6s 0.1s ease both;
+}
+.hero h1 .accent-cyan{color:var(--cyan);text-shadow:0 0 40px rgba(0,245,212,0.5)}
+.hero h1 .accent-pink{color:var(--pink);text-shadow:0 0 40px rgba(255,61,107,0.5)}
+.hero-sub{
+  font-size:16px;color:var(--dim);max-width:500px;margin:0 auto 48px;
+  line-height:1.8;font-weight:300;
+  animation:fadeUp 0.6s 0.2s ease both;
+}
+
+/* stats row */
+.stats-row{
+  position:relative;z-index:2;
+  display:flex;justify-content:center;gap:0;
+  max-width:700px;margin:0 auto 60px;
+  animation:fadeUp 0.6s 0.3s ease both;
+}
+.stat{
+  flex:1;text-align:center;padding:20px 16px;
+  border:1px solid var(--border);background:var(--card);
+  position:relative;overflow:hidden;
+}
+.stat:first-child{border-radius:16px 0 0 16px}
+.stat:last-child{border-radius:0 16px 16px 0}
+.stat+.stat{border-left:none}
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  opacity:0.5;
+}
+.stat-num{font-family:var(--head);font-size:32px;letter-spacing:0.05em;color:var(--cyan);display:block}
+.stat-label{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:4px;letter-spacing:0.1em;text-transform:uppercase}
+
+/* main layout */
+.main{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:24px;max-width:1200px;
+  margin:0 auto;padding:0 40px 80px;
+}
+
+/* panels */
+.panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:32px;
+  position:relative;overflow:hidden;
+}
+.panel::after{
+  content:'';position:absolute;inset:0;border-radius:24px;
+  background:linear-gradient(135deg,rgba(0,245,212,0.03) 0%,transparent 50%);
+  pointer-events:none;
+}
+.panel-title{
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:24px;
+  display:flex;align-items:center;gap:8px;
+}
+.panel-title::before{
+  content:'';width:8px;height:8px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  box-shadow:0 0 8px var(--cyan);
+}
+
+/* drop zone */
+#drop-zone{
+  border:1.5px dashed rgba(0,245,212,0.2);
+  border-radius:16px;min-height:300px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.3s;
+  position:relative;overflow:hidden;
+  background:rgba(0,245,212,0.02);
+}
+#drop-zone:hover,#drop-zone.drag-over{
+  border-color:var(--cyan);
+  background:rgba(0,245,212,0.05);
+  transform:scale(1.01);
+}
+#drop-zone.has-image{border-color:transparent;background:#000;padding:0;min-height:300px}
+
+/* corner decorations */
+#drop-zone::before,#drop-zone::after{
+  content:'';position:absolute;
+  width:24px;height:24px;
+  border-color:rgba(0,245,212,0.3);
+  border-style:solid;
+  transition:border-color 0.3s;
+}
+#drop-zone::before{top:12px;left:12px;border-width:2px 0 0 2px;border-radius:4px 0 0 0}
+#drop-zone::after{bottom:12px;right:12px;border-width:0 2px 2px 0;border-radius:0 0 4px 0}
+#drop-zone:hover::before,#drop-zone:hover::after{border-color:var(--cyan)}
+
+.upload-icon{
+  width:72px;height:72px;
+  background:linear-gradient(135deg,rgba(0,245,212,0.1),rgba(155,93,229,0.1));
+  border:1px solid rgba(0,245,212,0.2);
+  border-radius:20px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+  transition:all 0.3s;
+}
+#drop-zone:hover .upload-icon{
+  background:linear-gradient(135deg,rgba(0,245,212,0.2),rgba(155,93,229,0.2));
+  border-color:var(--cyan);
+  box-shadow:0 0 20px rgba(0,245,212,0.2);
+}
+.upload-icon svg{width:32px;height:32px;stroke:var(--cyan);fill:none;stroke-width:1.5}
+.upload-h{font-family:var(--head);font-size:22px;letter-spacing:0.05em;color:#fff;margin-bottom:8px}
+.upload-p{font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center}
+
+#preview-img{display:none;width:100%;height:300px;object-fit:contain;border-radius:16px}
+#preview-img.show{display:block}
+#file-input{display:none}
+
+/* scan line animation */
+.scan-line{
+  position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  top:0;display:none;
+}
+.scan-line.active{display:block;animation:scanDown 1.5s linear infinite}
+@keyframes scanDown{from{top:0}to{top:100%}}
+
+/* controls */
+.controls{display:none;gap:10px;margin-top:16px}
+.controls.show{display:flex}
+.btn{
+  font-family:var(--body);font-size:14px;font-weight:500;
+  padding:12px 20px;border-radius:12px;
+  cursor:pointer;border:none;
+  transition:all 0.2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-clear{
+  background:var(--card2);color:var(--dim);
+  border:1px solid var(--border);flex:1;
+}
+.btn-clear:hover{background:var(--faint);color:var(--text)}
+.btn-analyze{
+  background:linear-gradient(135deg,var(--cyan2),var(--cyan));
+  color:#000;flex:2.5;font-weight:700;
+  box-shadow:0 4px 20px rgba(0,245,212,0.25);
+}
+.btn-analyze:hover{filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,245,212,0.35)}
+.btn-analyze:disabled{background:var(--card2);color:var(--faint);cursor:not-allowed;transform:none;box-shadow:none}
+
+.spinner{width:16px;height:16px;border:2px solid rgba(0,0,0,0.2);border-top-color:#000;border-radius:50%;animation:spin 0.6s linear infinite;display:none}
+.spinner.show{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* result panel */
+.result-empty{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  min-height:300px;gap:16px;text-align:center;
+}
+.empty-icon{
+  width:64px;height:64px;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:18px;
+  display:flex;align-items:center;justify-content:center;
+}
+.empty-icon svg{width:28px;height:28px;stroke:var(--faint);fill:none}
+.empty-text{font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.8}
+
+/* skeleton */
+.skeleton{display:none}
+.skeleton.show{display:block}
+.skel{
+  background:linear-gradient(90deg,var(--card2) 25%,var(--faint) 50%,var(--card2) 75%);
+  background-size:200% 100%;
+  border-radius:10px;
+  animation:shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* verdict */
+.verdict{display:none}
+.verdict.show{display:block;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(0.95) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+.verdict-banner{
+  border-radius:16px;padding:24px;
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:18px;
+  position:relative;overflow:hidden;
+}
+.verdict-banner::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.03),transparent);
+  pointer-events:none;
+}
+.verdict-banner.fractured{
+  background:linear-gradient(135deg,rgba(255,61,107,0.12),rgba(255,61,107,0.05));
+  border:1px solid rgba(255,61,107,0.25);
+  box-shadow:0 0 30px rgba(255,61,107,0.1);
+}
+.verdict-banner.non-fractured{
+  background:linear-gradient(135deg,rgba(0,245,212,0.12),rgba(0,245,212,0.05));
+  border:1px solid rgba(0,245,212,0.25);
+  box-shadow:0 0 30px rgba(0,245,212,0.1);
+}
+.verdict-orb{
+  width:60px;height:60px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.verdict-orb.fractured{
+  background:linear-gradient(135deg,var(--pink2),var(--pink));
+  box-shadow:0 0 20px rgba(255,61,107,0.4);
+}
+.verdict-orb.non-fractured{
+  background:linear-gradient(135deg,var(--cyan2),var(--cyan));
+  box-shadow:0 0 20px rgba(0,245,212,0.4);
+}
+.verdict-orb svg{width:26px;height:26px;stroke:#000;fill:none;stroke-width:2.5}
+.verdict-tag{font-family:var(--mono);font-size:10px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px}
+.fractured .verdict-tag{color:var(--pink)}
+.non-fractured .verdict-tag{color:var(--cyan)}
+.verdict-label{font-family:var(--head);font-size:36px;letter-spacing:0.05em;line-height:1}
+.fractured .verdict-label{color:var(--pink)}
+.non-fractured .verdict-label{color:var(--cyan)}
+
+/* confidence bar */
+.conf-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.conf-title{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase}
+.conf-pct{font-family:var(--head);font-size:22px;letter-spacing:0.05em;color:#fff}
+.conf-track{height:8px;background:var(--card2);border-radius:99px;overflow:hidden;margin-bottom:20px;border:1px solid var(--border)}
+.conf-fill{height:100%;border-radius:99px;width:0%;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
+.conf-fill.fractured{background:linear-gradient(90deg,var(--pink2),var(--pink))}
+.conf-fill.non-fractured{background:linear-gradient(90deg,var(--cyan2),var(--cyan))}
+
+/* stats grid */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat-card-label{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.stat-card-val{font-size:13px;font-weight:500;color:var(--text)}
+
+/* detection image */
+.detection-box{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;margin-bottom:16px;
+}
+.detection-header{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--dim);display:flex;align-items:center;justify-content:space-between;
+}
+.detection-badge{
+  background:rgba(0,245,212,0.1);
+  border:1px solid rgba(0,245,212,0.2);
+  color:var(--cyan);padding:2px 8px;border-radius:6px;
+  font-size:10px;
+}
+.detection-badge.alert{
+  background:rgba(255,61,107,0.1);
+  border-color:rgba(255,61,107,0.2);
+  color:var(--pink);
+}
+#annotated-img{width:100%;display:block}
+
+/* analysis */
+.analysis{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+  font-size:13px;line-height:1.8;
+  color:var(--dim);font-weight:300;
+  margin-bottom:16px;
+}
+.analysis strong{font-weight:500}
+.analysis .cyan{color:var(--cyan)}
+.analysis .pink{color:var(--pink)}
+
+/* disclaimer */
+.disclaimer{
+  display:flex;gap:10px;
+  background:rgba(255,209,102,0.05);
+  border:1px solid rgba(255,209,102,0.15);
+  border-radius:10px;padding:12px 14px;
+  font-size:11px;color:rgba(255,209,102,0.6);
+  font-family:var(--mono);line-height:1.6;
+}
+
+/* footer */
+footer{
+  position:relative;z-index:2;
+  text-align:center;padding:28px;
+  border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;color:var(--dim);
+}
+footer span{color:var(--cyan)}
+
+/* animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero-tag{animation:fadeUp 0.6s ease both}
+.hero h1{animation:fadeUp 0.6s 0.1s ease both}
+.hero-sub{animation:fadeUp 0.6s 0.2s ease both}
+.stats-row{animation:fadeUp 0.6s 0.3s ease both}
+.main{animation:fadeUp 0.6s 0.4s ease both}
+
+@media(max-width:768px){
+  .main{grid-template-columns:1fr}
+  header{padding:16px 24px}
+  .hero{padding:60px 24px 40px}
+  .stats-row{padding:0 24px}
+  .main{padding:0 20px 60px}
+}
+</style>
+</head>
+<body>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🦷</div>
+    <div class="logo-text">Dental<span>Scan</span></div>
+  </div>
+  <div class="header-pills">
+    <div class="pill live"><div class="live-dot"></div> AI Online</div>
+    <div class="pill">EfficientNet-B0</div>
+    <div class="pill">YOLOv8</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-tag">AI-Powered Dental Radiology</div>
+  <h1>DETECT<br><span class="accent-cyan">DENTAL</span><br><span class="accent-pink">FRACTURES</span></h1>
+  <p class="hero-sub">Upload a dental X-ray for instant AI classification and fracture localization using dual deep learning models.</p>
+</section>
+
+<div class="stats-row">
+  <div class="stat"><span class="stat-num">2</span><div class="stat-label">AI Models</div></div>
+  <div class="stat"><span class="stat-num">B0</span><div class="stat-label">EfficientNet</div></div>
+  <div class="stat"><span class="stat-num">v8m</span><div class="stat-label">YOLOv8</div></div>
+  <div class="stat"><span class="stat-num">640px</span><div class="stat-label">Detection res.</div></div>
+</div>
+
+<div class="main">
+  <!-- Upload Panel -->
+  <div class="panel">
+    <div class="panel-title">X-Ray Upload</div>
+    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="scan-line" id="scan-line"></div>
+      <div id="upload-prompt">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+        </div>
+        <div class="upload-h">DROP X-RAY HERE</div>
+        <div class="upload-p">JPEG · PNG · WEBP &nbsp;·&nbsp; Max 10MB</div>
+      </div>
+      <img id="preview-img" alt="X-ray preview">
+    </div>
+    <input type="file" id="file-input" accept="image/*">
+    <div class="controls" id="controls">
+      <button class="btn btn-clear" onclick="resetAll()">✕ Clear</button>
+      <button class="btn btn-analyze" id="analyze-btn" onclick="analyze()">
+        <span id="btn-label">Analyze X-Ray →</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Result Panel -->
+  <div class="panel">
+    <div class="panel-title">Analysis Results</div>
+
+    <div class="result-empty" id="result-empty">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z"/></svg>
+      </div>
+      <div class="empty-text">Upload and analyze an X-ray<br>to see results here</div>
+    </div>
+
+    <div class="skeleton" id="skeleton">
+      <div class="skel" style="height:100px;border-radius:16px;margin-bottom:20px"></div>
+      <div class="skel" style="height:8px;border-radius:99px;margin-bottom:20px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+        <div class="skel" style="height:64px;border-radius:12px"></div>
+        <div class="skel" style="height:64px;border-radius:12px"></div>
+        <div class="skel" style="height:64px;border-radius:12px"></div>
+        <div class="skel" style="height:64px;border-radius:12px"></div>
+      </div>
+      <div class="skel" style="height:180px;border-radius:14px;margin-bottom:16px"></div>
+      <div class="skel" style="height:60px;border-radius:12px"></div>
+    </div>
+
+    <div class="verdict" id="verdict">
+      <div class="verdict-banner" id="verdict-banner">
+        <div class="verdict-orb" id="verdict-orb">
+          <svg viewBox="0 0 24 24" id="icon-check" style="display:none"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          <svg viewBox="0 0 24 24" id="icon-x"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+        </div>
+        <div>
+          <div class="verdict-tag">Classification Result</div>
+          <div class="verdict-label" id="v-label">—</div>
+        </div>
+      </div>
+
+      <div class="conf-header">
+        <span class="conf-title">Confidence Score</span>
+        <span class="conf-pct" id="v-conf">—</span>
+      </div>
+      <div class="conf-track"><div class="conf-fill" id="v-fill"></div></div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-card-label">Classifier</div><div class="stat-card-val">EfficientNet-B0</div></div>
+        <div class="stat-card"><div class="stat-card-label">Detector</div><div class="stat-card-val">YOLOv8m</div></div>
+        <div class="stat-card"><div class="stat-card-label">Boxes Found</div><div class="stat-card-val" id="v-boxes">—</div></div>
+        <div class="stat-card"><div class="stat-card-label">Time</div><div class="stat-card-val" id="v-time">—</div></div>
+      </div>
+
+      <div class="detection-box">
+        <div class="detection-header">
+          <span>Detection Output</span>
+          <span class="detection-badge" id="detect-badge">YOLOv8</span>
+        </div>
+        <img id="annotated-img" src="" alt="Detection result">
+      </div>
+
+      <div class="analysis" id="v-analysis"></div>
+      <div class="disclaimer"><span>⚠</span> For research and educational use only. Not a substitute for professional clinical diagnosis.</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built with <span>EfficientNet-B0 + YOLOv8</span> · DentalScan AI · For clinical research only
+</footer>
+
+<script>
+let selectedFile = null;
+const dropZone = document.getElementById("drop-zone");
+const fileInput = document.getElementById("file-input");
+const previewImg = document.getElementById("preview-img");
+const controls = document.getElementById("controls");
+const analyzeBtn = document.getElementById("analyze-btn");
+const spinner = document.getElementById("spinner");
+const btnLabel = document.getElementById("btn-label");
+const scanLine = document.getElementById("scan-line");
+
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("drag-over"); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener("change", () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(file) {
+  if (!file.type.startsWith("image/")) return alert("Please upload an image file.");
+  if (file.size > 10 * 1024 * 1024) return alert("File too large. Max 10MB.");
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewImg.classList.add("show");
+    document.getElementById("upload-prompt").style.display = "none";
+    dropZone.classList.add("has-image");
+    controls.classList.add("show");
+    resetResult();
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetAll() {
+  selectedFile = null; fileInput.value = "";
+  previewImg.src = ""; previewImg.classList.remove("show");
+  document.getElementById("upload-prompt").style.display = "";
+  dropZone.classList.remove("has-image");
+  controls.classList.remove("show");
+  resetResult();
+}
+
+function resetResult() {
+  document.getElementById("result-empty").style.display = "flex";
+  document.getElementById("skeleton").classList.remove("show");
+  document.getElementById("verdict").classList.remove("show");
+}
+
+async function analyze() {
+  if (!selectedFile) return;
+  analyzeBtn.disabled = true;
+  btnLabel.textContent = "Analyzing…";
+  spinner.classList.add("show");
+  scanLine.classList.add("active");
+  document.getElementById("result-empty").style.display = "none";
+  document.getElementById("skeleton").classList.add("show");
+  document.getElementById("verdict").classList.remove("show");
+
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+
+  try {
+    const res = await fetch("/predict", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("Server error");
+    const data = await res.json();
+    showVerdict(data);
+  } catch (err) {
+    document.getElementById("skeleton").classList.remove("show");
+    document.getElementById("result-empty").style.display = "flex";
+    document.getElementById("result-empty").innerHTML = '<div class="empty-icon"><svg viewBox="0 0 24 24" stroke-width="1" style="stroke:#ff3d6b;fill:none;width:28px;height:28px"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg></div><div class="empty-text" style="color:#ff3d6b">Analysis failed.<br>Please try again.</div>';
+  } finally {
+    analyzeBtn.disabled = false;
+    btnLabel.textContent = "Analyze X-Ray →";
+    spinner.classList.remove("show");
+    scanLine.classList.remove("active");
+  }
+}
+
+function showVerdict(data) {
+  const isFractured = data.classification === "Fractured";
+  const cls = isFractured ? "fractured" : "non-fractured";
+  const conf = Math.round(data.confidence);
+
+  document.getElementById("verdict-banner").className = "verdict-banner " + cls;
+  document.getElementById("verdict-orb").className = "verdict-orb " + cls;
+  document.getElementById("icon-check").style.display = isFractured ? "none" : "block";
+  document.getElementById("icon-x").style.display = isFractured ? "block" : "none";
+  document.getElementById("v-label").textContent = data.classification;
+  document.getElementById("v-conf").textContent = conf + "%";
+
+  const fill = document.getElementById("v-fill");
+  fill.className = "conf-fill " + cls;
+  setTimeout(() => { fill.style.width = conf + "%"; }, 100);
+
+  document.getElementById("v-boxes").textContent = data.boxes_found + " detected";
+  document.getElementById("v-time").textContent = data.elapsed + " ms";
+
+  const badge = document.getElementById("detect-badge");
+  badge.textContent = data.boxes_found > 0 ? data.boxes_found + " box(es)" : "No boxes";
+  badge.className = "detection-badge" + (data.boxes_found > 0 && isFractured ? " alert" : "");
+
+  document.getElementById("annotated-img").src = "data:image/jpeg;base64," + data.annotated_image;
+
+  const msg = isFractured
+    ? `<strong class="pink">Fracture detected</strong> with ${conf}% confidence. ${data.boxes_found} region(s) localized by YOLOv8. Clinical verification is strongly recommended.`
+    : `<strong class="cyan">No fracture detected</strong> with ${conf}% confidence. Dental structures appear intact. Always confirm with a qualified professional.`;
+  document.getElementById("v-analysis").innerHTML = msg;
+
+  document.getElementById("skeleton").classList.remove("show");
+  document.getElementById("verdict").classList.add("show");
+}
+</script>
+</body>
+</html>
