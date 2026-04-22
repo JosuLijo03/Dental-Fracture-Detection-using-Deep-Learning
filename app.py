@@ -45,7 +45,7 @@ def predict():
 
     # --- YOLOv8 Detection ---
     img_rgb = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-    results = yolo_model(img_rgb, conf=0.25)
+    results = yolo_model(img_rgb, conf=0.10)
     result = results[0]
 
     draw = ImageDraw.Draw(img_rgb)
