@@ -8,7 +8,7 @@ from ultralytics import YOLO
 app = Flask(__name__, template_folder="templates")
 device = torch.device("cpu")
 
-clf_model = torch.load("efficientnet_full.pth", map_location=device, weights_only=False)
+clf_model = torch.load("effnet_b0_v2.pth", map_location=device, weights_only=False)
 clf_model.eval()
 
 yolo_model = YOLO("best.pt")
