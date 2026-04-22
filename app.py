@@ -44,7 +44,9 @@ def predict():
         confidence = round(prob * 100, 1)
 
     img_rgb = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-    results = yolo_model(img_rgb, conf=0.4)
+    results = yolo_model(img_rgb, conf=0.15
+                        
+                        )
     result = results[0]
 
     draw = ImageDraw.Draw(img_rgb)
