@@ -8,7 +8,7 @@ from ultralytics import YOLO
 app = Flask(__name__, template_folder="templates")
 device = torch.device("cpu")
 
-clf_model = torch.load("effnet_b0_v2.pth", map_location=device, weights_only=False)
+clf_model = torch.load("efficientnet_full.pth", map_location=device, weights_only=False)
 clf_model.eval()
 
 yolo_model = YOLO("best.pt")
@@ -16,10 +16,8 @@ yolo_model = YOLO("best.pt")
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.Grayscale(num_output_channels=3),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406],[0.229, 0.224, 0.225])
+    transforms.ToTensor()
 ])
-
 @app.route("/")
 def index():
     return render_template("index.html")
