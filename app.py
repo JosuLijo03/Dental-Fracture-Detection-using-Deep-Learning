@@ -42,7 +42,7 @@ class GradCAM:
             self.gradients = grad_output[0].detach()
 
         # EfficientNet-B0 last conv layer
-        target_layer = self.model.features[-1]
+        target_layer = self.model.features[8]
         target_layer.register_forward_hook(forward_hook)
         target_layer.register_full_backward_hook(backward_hook)
 
