@@ -5,14 +5,21 @@ from torchvision import transforms
 from PIL import Image, ImageDraw
 import io, time, base64, cv2
 import numpy as np
+import copy
 from ultralytics import YOLO
 
 app = Flask(__name__, template_folder="templates")
 device = torch.device("cpu")
 
+# Load classification model
 clf_model = torch.load("efficientnet_full.pth", map_location=device, weights_only=False)
 clf_model.eval()
 
+# Separate copy ONLY for GradCAM++ — never touches inference
+gradcam_model = copy.deepcopy(clf_model)
+gradcam_model.eval()
+
+# YOLOv8
 yolo_model = YOLO("best.pt")
 
 transform = transforms.Compose([
@@ -22,7 +29,7 @@ transform = transforms.Compose([
 ])
 
 # ============================================
-# GRAD-CAM++ — fixed, won't affect inference
+# GRAD-CAM++ on separate model copy
 # ============================================
 class GradCAMPlusPlus:
     def __init__(self, model):
@@ -40,7 +47,6 @@ class GradCAMPlusPlus:
         self.gradients = grad_output[0].detach()
 
     def generate(self, input_tensor):
-        # Always reset before GradCAM
         self.model.eval()
         self.model.zero_grad()
 
@@ -51,7 +57,6 @@ class GradCAMPlusPlus:
         grad = self.gradients
         act  = self.activations
 
-        # GradCAM++ weighting
         grad_sq = grad ** 2
         grad_cu = grad ** 3
         sum_act = act.sum(dim=[2, 3], keepdim=True)
@@ -67,10 +72,7 @@ class GradCAMPlusPlus:
         else:
             cam = np.zeros_like(cam)
 
-        # Reset after GradCAM
         self.model.zero_grad()
-        self.model.eval()
-
         return cam
 
 
@@ -84,7 +86,7 @@ def apply_gradcam_overlay(original_img, cam):
     return Image.fromarray(overlay)
 
 
-gradcam = GradCAMPlusPlus(clf_model)
+gradcam = GradCAMPlusPlus(gradcam_model)
 
 
 @app.route("/")
@@ -100,10 +102,11 @@ def predict():
 
     img_pil = Image.open(io.BytesIO(img_bytes))
     img_gray = img_pil.convert("L")
+    tensor = transform(img_gray).unsqueeze(0).to(device)
 
-    # --- Step 1: Classification (always first) ---
+    # --- Step 1: Classification on ORIGINAL model ---
+    clf_model.eval()
     with torch.no_grad():
-        tensor = transform(img_gray).unsqueeze(0).to(device)
         output = clf_model(tensor)
         prob = torch.sigmoid(output).item()
 
@@ -114,7 +117,7 @@ def predict():
         label = "Non-Fractured"
         confidence = round(prob * 100, 1)
 
-    # --- Step 2: GradCAM++ (after classification) ---
+    # --- Step 2: GradCAM++ on SEPARATE model copy ---
     try:
         tensor_grad = transform(img_gray).unsqueeze(0).to(device)
         cam = gradcam.generate(tensor_grad)
@@ -126,7 +129,7 @@ def predict():
         print("GradCAM++ error:", e)
         gradcam_b64 = ""
 
-    # --- Step 3: YOLOv8 (always last) ---
+    # --- Step 3: YOLOv8 ---
     img_rgb = Image.open(io.BytesIO(img_bytes)).convert("RGB")
     results = yolo_model(img_rgb, conf=0.25)
     result = results[0]
