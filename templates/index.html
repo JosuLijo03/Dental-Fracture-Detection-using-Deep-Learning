@@ -407,6 +407,47 @@ footer span{color:var(--cyan)}
   .stats-row{padding:0 24px}
   .main{padding:0 20px 60px}
 }
+
+/* gradcam panel */
+.gradcam-section{
+  position:relative;z-index:2;
+  max-width:1200px;margin:0 auto 80px;
+  padding:0 40px;
+}
+.gradcam-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:32px;
+  position:relative;overflow:hidden;
+  display:none;
+}
+.gradcam-panel.show{display:block;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1)}
+.gradcam-panel::after{
+  content:'';position:absolute;inset:0;border-radius:24px;
+  background:linear-gradient(135deg,rgba(155,93,229,0.03) 0%,transparent 50%);
+  pointer-events:none;
+}
+.gradcam-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+.gradcam-img-box{border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+.gradcam-img-box img{width:100%;display:block}
+.gradcam-img-label{
+  padding:8px 14px;
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--dim);border-bottom:1px solid var(--border);
+  background:var(--card2);
+}
+.xai-info{
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;padding:16px;margin-top:16px;
+  font-size:13px;line-height:1.8;color:var(--dim);
+}
+.xai-info strong{color:var(--purple)}
+.legend{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+.legend-dot{width:12px;height:12px;border-radius:50%}
+
 </style>
 </head>
 <body>
@@ -528,6 +569,40 @@ footer span{color:var(--cyan)}
   </div>
 </div>
 
+
+<!-- Grad-CAM Section -->
+<div class="gradcam-section">
+  <div class="gradcam-panel" id="gradcam-panel">
+    <div class="panel-title" style="color:var(--purple)">
+      <span style="background:linear-gradient(135deg,var(--cyan),var(--purple));width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;box-shadow:0 0 8px var(--purple)"></span>
+      Explainability AI — Grad-CAM Heatmap
+    </div>
+    <div class="xai-info">
+      <strong>What is Grad-CAM?</strong> Gradient-weighted Class Activation Mapping highlights the regions of the X-ray that most influenced the AI's decision. 
+      <span style="color:var(--cyan)">Blue/green = low attention</span> · 
+      <span style="color:var(--gold)">Yellow = medium attention</span> · 
+      <span style="color:var(--pink)">Red = high attention (fracture region)</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#0000ff"></div>Low</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#00ff00"></div>Medium-Low</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffff00"></div>Medium-High</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff4500"></div>High</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff0000"></div>Critical</div>
+      </div>
+    </div>
+    <div class="gradcam-grid">
+      <div class="gradcam-img-box">
+        <div class="gradcam-img-label">Original X-Ray</div>
+        <img id="original-img" src="" alt="Original">
+      </div>
+      <div class="gradcam-img-box">
+        <div class="gradcam-img-label">Grad-CAM Heatmap Overlay</div>
+        <img id="gradcam-img" src="" alt="Grad-CAM">
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>
   Built with <span>EfficientNet-B0 + YOLOv8</span> · DentalScan AI · For clinical research only
 </footer>
@@ -641,6 +716,13 @@ function showVerdict(data) {
 
   document.getElementById("skeleton").classList.remove("show");
   document.getElementById("verdict").classList.add("show");
+
+  // Show Grad-CAM
+  if (data.gradcam_image) {
+    document.getElementById("original-img").src = URL.createObjectURL(selectedFile);
+    document.getElementById("gradcam-img").src = "data:image/jpeg;base64," + data.gradcam_image;
+    document.getElementById("gradcam-panel").classList.add("show");
+  }
 }
 </script>
 </body>
