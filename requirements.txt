@@ -1,5 +1,0 @@
-flask
-torch
-torchvision
-pillow
-ultralytics
