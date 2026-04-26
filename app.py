@@ -36,7 +36,7 @@ class GradCAMPlusPlus:
         self.model = model
         self.gradients = None
         self.activations = None
-        target_layer = self.model.features[5][0].block[0][0]
+        target_layer = self.model.features[5][-1].block[3][0]
         target_layer.register_forward_hook(self._forward_hook)
         target_layer.register_full_backward_hook(self._backward_hook)
 
