@@ -137,54 +137,64 @@ def predict():
         label      = "Non-Fractured"
         confidence = round(prob * 100, 1)
 
-    # --- Step 2: YOLOv8 Detection ---
-    img_rgb2 = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-    with torch.no_grad():
-        results = yolo_model(img_rgb2, conf=0.25)
-    result      = results[0]
-    boxes_found = len(result.boxes) if result.boxes is not None else 0
+    # --- Steps 2–4 only run if fracture is confirmed ---
+    if label == "Fractured":
 
-    draw = ImageDraw.Draw(img_rgb2)
-    if boxes_found > 0:
-        for box in result.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-            conf_score = round(float(box.conf[0]) * 100, 1)
-            draw.rectangle([x1, y1, x2, y2], outline=(255, 50, 50), width=2)
-            draw.text((x1+4, max(0, y1-16)),
-                      f"Fracture {conf_score}%", fill=(255, 50, 50))
+        # --- Step 2: YOLOv8 Detection ---
+        img_rgb2 = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+        with torch.no_grad():
+            results = yolo_model(img_rgb2, conf=0.25)
+        result      = results[0]
+        boxes_found = len(result.boxes) if result.boxes is not None else 0
 
-    buf_det = io.BytesIO()
-    img_rgb2.save(buf_det, format="JPEG", quality=92)
-    annotated_b64 = base64.b64encode(buf_det.getvalue()).decode("utf-8")
+        draw = ImageDraw.Draw(img_rgb2)
+        if boxes_found > 0:
+            for box in result.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                conf_score = round(float(box.conf[0]) * 100, 1)
+                draw.rectangle([x1, y1, x2, y2], outline=(255, 50, 50), width=2)
+                draw.text((x1+4, max(0, y1-16)),
+                          f"Fracture {conf_score}%", fill=(255, 50, 50))
 
-    # --- Step 3: GradCAM++ on EfficientNet ---
-    try:
-        tensor_grad = clf_transform(img_gray).unsqueeze(0)
-        cam         = gradcam.generate(tensor_grad)
-        gradcam_img = apply_gradcam_overlay(img_pil, cam)
-        buf_cam     = io.BytesIO()
-        gradcam_img.save(buf_cam, format="JPEG", quality=92)
-        gradcam_b64 = base64.b64encode(buf_cam.getvalue()).decode("utf-8")
-    except Exception as e:
-        print("GradCAM++ error:", e)
-        gradcam_b64 = ""
+        buf_det = io.BytesIO()
+        img_rgb2.save(buf_det, format="JPEG", quality=92)
+        annotated_b64 = base64.b64encode(buf_det.getvalue()).decode("utf-8")
 
-    # --- Step 4: EigenCAM on YOLOv8 ---
-    try:
-        img_resized = img_rgb.resize((640, 640))
-        img_array   = np.array(img_resized) / 255.0
-        yolo_tensor = torch.from_numpy(img_array).permute(2,0,1).unsqueeze(0).float()
+        # --- Step 3: GradCAM++ on EfficientNet ---
+        try:
+            tensor_grad = clf_transform(img_gray).unsqueeze(0)
+            cam         = gradcam.generate(tensor_grad)
+            gradcam_img = apply_gradcam_overlay(img_pil, cam)
+            buf_cam     = io.BytesIO()
+            gradcam_img.save(buf_cam, format="JPEG", quality=92)
+            gradcam_b64 = base64.b64encode(buf_cam.getvalue()).decode("utf-8")
+        except Exception as e:
+            print("GradCAM++ error:", e)
+            gradcam_b64 = ""
 
-        grayscale_cam = eigen_cam(input_tensor=yolo_tensor)[0]
-        eigen_overlay = show_cam_on_image(
-            img_array.astype(np.float32), grayscale_cam, use_rgb=True)
+        # --- Step 4: EigenCAM on YOLOv8 ---
+        try:
+            img_resized = img_rgb.resize((640, 640))
+            img_array   = np.array(img_resized) / 255.0
+            yolo_tensor = torch.from_numpy(img_array).permute(2,0,1).unsqueeze(0).float()
 
-        buf_eigen = io.BytesIO()
-        Image.fromarray(eigen_overlay).save(buf_eigen, format="JPEG", quality=92)
-        eigen_b64 = base64.b64encode(buf_eigen.getvalue()).decode("utf-8")
-    except Exception as e:
-        print("EigenCAM error:", e)
-        eigen_b64 = ""
+            grayscale_cam = eigen_cam(input_tensor=yolo_tensor)[0]
+            eigen_overlay = show_cam_on_image(
+                img_array.astype(np.float32), grayscale_cam, use_rgb=True)
+
+            buf_eigen = io.BytesIO()
+            Image.fromarray(eigen_overlay).save(buf_eigen, format="JPEG", quality=92)
+            eigen_b64 = base64.b64encode(buf_eigen.getvalue()).decode("utf-8")
+        except Exception as e:
+            print("EigenCAM error:", e)
+            eigen_b64 = ""
+
+    else:
+        # Non-Fractured: skip all heavy inference
+        boxes_found   = 0
+        annotated_b64 = ""
+        gradcam_b64   = ""
+        eigen_b64     = ""
 
     elapsed = round((time.time() - start) * 1000)
 
