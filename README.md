@@ -2,7 +2,7 @@
 
 A deep learning and computer vision system for detecting mandibular fractures from dental X-ray images.
 
-The project explores image classification, transfer learning, hybrid machine learning, object detection, model explainability, and web-based deployment as part of an end-to-end medical image analysis pipeline.
+The project explores binary image classification, transfer learning, hybrid machine learning, fracture localization, explainable AI, and web-based model deployment.
 
 > **Note:** This is an academic/research prototype and is not intended for clinical diagnosis or medical decision-making.
 
@@ -10,47 +10,50 @@ The project explores image classification, transfer learning, hybrid machine lea
 
 ## Overview
 
-Dental fractures can be difficult to identify from X-ray images because fracture regions may be small, subtle, and affected by image quality.
+The goal of this project is to develop a computer vision pipeline capable of identifying fractures in dental X-ray images.
 
-This project investigates whether deep learning models can automatically distinguish between:
+The project was developed through multiple stages, beginning with a custom CNN and progressing through transfer learning, CNN feature extraction with traditional machine learning classifiers, object detection, explainability, and web deployment.
 
-- **Fractured X-rays**
-- **Non-fractured X-rays**
+---
 
-The system was developed through multiple stages, starting with a custom CNN and progressing to transfer learning, hybrid machine learning, fracture localization, and explainability.
+## Application
+
+![DentalScan Application](images/dental-fracture-detection-full.png)
 
 ---
 
 ## System Pipeline
 
 ```text
-                  Dental X-ray Image
-                         │
-                         ▼
-                Image Preprocessing
-                         │
-                         ▼
-              Data Augmentation
-                         │
-                         ▼
-              Deep Learning Model
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-          Fracture              No Fracture
-              │
-              ▼
-        Feature Extraction
-              │
-              ▼
-     Hybrid ML Classification
-              │
-              ▼
-      Fracture Localization
-              │
-              ▼
-       YOLOv8 / DETR
-              │
-              ▼
-       Model Explainability
-       Grad-CAM / Eigen-CAM
+Dental X-ray
+     │
+     ▼
+Image Preprocessing
+     │
+     ▼
+Data Augmentation
+     │
+     ▼
+Deep Learning Classification
+     │
+     ├───────────────┐
+     ▼               ▼
+Fracture        No Fracture
+     │
+     ▼
+CNN Feature Extraction
+     │
+     ▼
+Hybrid ML Classification
+     │
+     ▼
+YOLOv8 Localization
+     │
+     ▼
+Explainable AI
+     │
+     ├── Grad-CAM
+     └── Eigen-CAM
+     │
+     ▼
+Web-based Inference
